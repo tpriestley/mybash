@@ -114,7 +114,7 @@ installZoxide() {
 
 install_additional_dependencies() {
    sudo apt update
-   sudo apt install -y trash-cli bat 
+   sudo apt install -y trash-cli bat tldr renameutils
 }
 
 linkConfig() {
