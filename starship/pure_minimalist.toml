@@ -1,0 +1,100 @@
+format = """
+$directory\
+$git_branch\
+$git_status\
+$git_metrics\
+$line_break\
+$os\
+$username\
+$hostname\
+$sudo\
+$localip\
+$python\
+$character"""
+
+right_format = """
+$cmd_duration\
+[](bright-black)\
+$shell\
+[](bright-black)\
+$time\
+"""
+
+[directory]
+style = "blue"
+
+[character]
+success_symbol = "[❯](green)"
+error_symbol = "[❯](red)"
+vimcmd_symbol = "[❮](purple)"
+
+[sudo]
+format = "[$symbol]($style)"
+disabled = false
+
+[shell]
+disabled = false
+format = '[$indicator]($style)'
+style = "bg:bright-black fg:dimmed black"
+
+[localip]
+ssh_only = true
+format = "[$localipv4]($style)"
+style = "purple"
+disabled = false
+
+[os]
+disabled = true
+
+[os.symbols]
+Windows = "󰍲"
+Ubuntu = "󰕈"
+SUSE = ""
+Raspbian = "󰐿"
+Mint = "󰣭"
+Macos = "󰀵"
+Manjaro = ""
+Linux = "󰌽"
+Gentoo = "󰣨"
+Fedora = "󰣛"
+Alpine = ""
+Amazon = ""
+Android = ""
+Arch = "󰣇"
+Artix = "󰣇"
+EndeavourOS = ""
+CentOS = ""
+Debian = "󰣚"
+Redhat = "󱄛"
+RedHatEnterprise = "󱄛"
+Pop = ""
+
+[git_branch]
+format = " [$branch(:$remote_branch)]($style)"
+symbol = "[△](bold italic bright-blue)"
+style = "italic bright-blue"
+truncation_symbol = "⋯"
+truncation_length = 11
+ignore_branches = ["main", "master"]
+only_attached = true
+
+[git_metrics]
+format = '([▴$added]($added_style))([▿$deleted]($deleted_style))'
+added_style = 'italic dimmed green'
+deleted_style = 'italic dimmed red'
+ignore_submodules = true
+disabled = false
+
+[cmd_duration]
+min_time = 1
+format = ' [$duration ](italic dimmed yellow)'
+
+[python]
+format = "[$virtualenv]($style) "
+style = "bright-black"
+
+[time]
+disabled = false
+format = "[$time]($style)"
+time_format = "%l:%M%P"
+style = "italic dimmed white"

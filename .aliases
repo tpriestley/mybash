@@ -1,4 +1,4 @@
-# Navigation
+# Navigation 
 alias home='cd ~'
 alias cd..='cd ..'
 alias ..='cd ..'
@@ -8,12 +8,12 @@ alias .....='cd ../../../..'
 
 #Listing
 alias ls='ls --color=auto'
-alias l='ls -A'
+alias l='ls -AF'
 alias la='ls -lh'
-alias ll='ls -lAh'
+alias ll='ls -lAFh'
 alias lsa='ls -lah'
 
-alias cat='batcat'
+alias cat='batcat' #batcat must be installed
 alias grep='grep --color=auto'
 alias md='mkdir -p'
 alias rd='rmdir'
@@ -23,7 +23,7 @@ alias cls='clear'
 alias bd='cd "$OLDPWD"'
 alias f="find . | grep "
 
-# chmod commands
+# chmod
 alias mx='chmod a+x'
 alias 000='chmod -R 000'
 alias 600='chmod -R 600'

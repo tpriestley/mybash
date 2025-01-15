@@ -1,5 +1,14 @@
+# Dependencies: zsh, fastfetch, starship, zoxide, fzf
+# Symbolic links need to be placed in:
+# ~/.config/starships/[THEME_NAME].toml #one for each theme
+# ~/.config/.aliases
+# ~/.zshrc
+
+# Set zcompdump location
+export ZSH_COMPDUMP="${HOME}/.cache/zsh/.zcompdump"
+
 # Set zinit and plugins directory
-ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
+ZINIT_HOME="${HOME}/.local/share/zinit/zinit.git"
 
 # If you come from bash you might have to change your $PATH.
 export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
@@ -7,10 +16,6 @@ export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 if [ -f /usr/bin/fastfetch ]; then
 	fastfetch
 fi
-
-# Set zcompdump location
-export ZSH_COMPDUMP="$HOME/.cache/zsh/.zcompdump"
-
 
 # Download zinit if not installed
 if [[ ! -d $ZINIT_HOME ]]; then
@@ -30,7 +35,7 @@ zinit light zsh-users/zsh-autosuggestions
 zinit light Aloxaf/fzf-tab
 zinit light djui/alias-tips
 
-# Load OMZ snippets (won't work with custom plugins)
+# Load OMZ snippets
 zinit snippet OMZP::colored-man-pages
 zinit snippet OMZP::cp
 zinit snippet OMZP::extract
@@ -38,22 +43,23 @@ zinit snippet OMZP::command-not-found # not sure if this is doing anything
 zinit snippet OMZP::sudo
 
 # Load completions
-autoload -U compinit && compinit
+autoload -Uz compinit && compinit
 
 zinit cdreplay -q
 
 # Shell integrations
-export STARSHIP_CONFIG=~/.config/gruvbox_rainbow_zsh.toml
+# Change starship prompt theme here
+export STARSHIP_CONFIG=~/.config/starships/pure_minimalist.toml
 
 # Set up fzf key bindings and fuzzy completion, fzf needs to be installed separately
 source /usr/share/doc/fzf/examples/key-bindings.zsh
 source /usr/share/doc/fzf/examples/completion.zsh
 
-# Init zoxide and thefuck
-eval "$(zoxide init zsh)"
+# Init zoxide
+eval "$(zoxide init --cmd cd zsh)"
 
 # Keybindings
-# bindkey '^f' autosuggest-accept
+# bindkey -L to show all existing key bindings
 bindkey '^p' history-search-backward
 bindkey '^n' history-search-forward
 
@@ -80,7 +86,6 @@ zstyle ':fzf-tab:complete:zi:*' fzf-preview 'ls --color $realpath'
 
 # Aliases
 source $HOME/.config/.aliases
-alias cd='z' # move to alias file and symlink it to this repo
 
 export VISUAL='nano'
 export EDITOR=$VISUAL
@@ -139,7 +144,7 @@ ver() {
 	esac
 }
 
-COMPLETION_WAITING_DOTS="true"
+COMPLETION_WAITING_DOTS="true" # Unsure if this works without oh-my-zsh
 
 # Init starship as last item
 eval "$(starship init zsh)"
