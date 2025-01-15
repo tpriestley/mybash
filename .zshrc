@@ -29,19 +29,13 @@ zinit light zsh-users/zsh-completions
 zinit light zsh-users/zsh-autosuggestions
 zinit light Aloxaf/fzf-tab
 zinit light djui/alias-tips
-# zinit light nvbn/thefuck 
-# zinit install for thefuck doesn't work
-# Functional install commands for thefuck (Python3.11)
-# sudo add-apt-repository ppa:deadsnakes/ppa
-# sudo apt install python3.11-distutils
-# pipx install --python python3.11 thefuck
 
 # Load OMZ snippets (won't work with custom plugins)
 zinit snippet OMZP::colored-man-pages
 zinit snippet OMZP::cp
 zinit snippet OMZP::extract
 zinit snippet OMZP::command-not-found # not sure if this is doing anything
-# zinit snippet OMZP::sudo
+zinit snippet OMZP::sudo
 
 # Load completions
 autoload -U compinit && compinit
@@ -56,36 +50,12 @@ source /usr/share/doc/fzf/examples/key-bindings.zsh
 source /usr/share/doc/fzf/examples/completion.zsh
 
 # Init zoxide and thefuck
-eval "$(zoxide init --cmd cd zsh)"
-eval $(thefuck --alias) # running in a Python3.11 venv. seems UNBELIEVABLY slow, not sure if worth using
-# works but is so slow, maybe WSL but prolly not worth using
+eval "$(zoxide init zsh)"
 
 # Keybindings
 # bindkey '^f' autosuggest-accept
 bindkey '^p' history-search-backward
 bindkey '^n' history-search-forward
-# bindkey -s '\e\e' "fuck --yeah\n" #still prints to terminal
-
-# THE FUCK SETUP
-# Create cache directory if it doesn't exist
-[[ -d $HOME/.cache/zsh ]] || mkdir -p $HOME/.cache/zsh
-
-# Register alias if cache doesn't exist
-[[ ! -a $HOME/.cache/zsh/thefuck ]] && thefuck --alias > $HOME/.cache/zsh/thefuck
-source $HOME/.cache/zsh/thefuck
-
-# Define the function #inputs corrected command to CLI, could be modified to auto-execute it without showing
-# Additionally, the function's response is fairly slow, could be WSL or old laptop but might not be worth it
-fuck-command-line() {
-    local FUCK="$(THEFUCK_REQUIRE_CONFIRMATION=0 thefuck $(fc -ln -1 | tail -n 1) 2> /dev/null)"
-    [[ -z $FUCK ]] && echo -n -e "\a" && return
-    BUFFER=$FUCK
-    zle end-of-line
-}
-
-# Create the widget and bind keys
-zle -N fuck-command-line
-bindkey '\e\e' fuck-command-line
 
 # History
 HISTSIZE=5000
@@ -110,6 +80,7 @@ zstyle ':fzf-tab:complete:zi:*' fzf-preview 'ls --color $realpath'
 
 # Aliases
 source $HOME/.config/.aliases
+alias cd='z' # move to alias file and symlink it to this repo
 
 export VISUAL='nano'
 export EDITOR=$VISUAL
