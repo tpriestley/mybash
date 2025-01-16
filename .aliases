@@ -31,3 +31,28 @@ alias 644='chmod -R 644'
 alias 666='chmod -R 666'
 alias 755='chmod -R 755'
 alias 777='chmod -R 777'
+
+# Git aliases
+alias ga='git add'
+alias gc='git commit'
+alias gp='git push'
+alias gs='git status'
+alias gd='git diff'
+alias gl='git log'
+
+# System
+alias df='df -h'
+alias du='du -h'
+alias free='free -h'
+alias path='echo -e ${PATH//:/\\n}'
+alias update='sudo apt update && sudo apt upgrade'
+
+# Common commands
+# alias l='ls -lah'
+# alias la='ls -lAh'
+# alias ll='ls -lh'
+# alias ls='ls --color=tty'
+# alias cp='cp -iv'
+# alias mv='mv -iv'
+# alias rm='rm -iv'
+# alias mkdir='mkdir -pv'
