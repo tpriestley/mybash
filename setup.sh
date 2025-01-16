@@ -67,8 +67,13 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Check for required files and directories
-STARSHIP_THEMES_DIR="${SCRIPT_DIR}/starships"
+STARSHIP_THEMES_DIR="${SCRIPT_DIR}/starship"
 ALIASES_FILE="${SCRIPT_DIR}/.aliases"
+ZSHRC_FILE="${SCRIPT_DIR}/.zshrc"
+
+# Get the home directory of the user who invoked sudo
+USER_HOME=$(eval echo ~${SUDO_USER})
+echo ${SUDO_USER}
 
 if [ ! -d "$STARSHIP_THEMES_DIR" ]; then
     print_error "Starship themes directory not found at: $STARSHIP_THEMES_DIR"
@@ -77,6 +82,11 @@ fi
 
 if [ ! -f "$ALIASES_FILE" ]; then
     print_error "Aliases file not found at: $ALIASES_FILE"
+    exit 1
+fi
+
+if [ ! -f "$ZSHRC_FILE" ]; then
+    print_error ".zshrc file not found at: $ZSHRC_FILE"
     exit 1
 fi
 
@@ -148,9 +158,9 @@ fi
 # Create necessary directories
 print_status "Creating necessary directories..."
 DIRECTORIES=(
-    "~/.config"
-    "~/.cache/zsh"
-    "~/.local/share/zinit"
+    "$USER_HOME/.config"
+    "$USER_HOME/.cache/zsh"
+    # "$USER_HOME/.local/share/zinit"
 )
 
 for dir in "${DIRECTORIES[@]}"; do
@@ -163,8 +173,8 @@ done
 
 # Create symbolic links
 print_status "Creating symbolic links for Starship themes..."
-STARSHIP_CONFIG_DIR="~/.config/starships"
-execute_command "mkdir -p $(eval echo $STARSHIP_CONFIG_DIR)"
+STARSHIP_CONFIG_DIR="$USER_HOME/.config/starships"
+execute_command "mkdir -p $STARSHIP_CONFIG_DIR"
 
 for theme in "$STARSHIP_THEMES_DIR"/*.toml; do
     if [ -f "$theme" ]; then
@@ -177,8 +187,11 @@ done
 
 # Create a symbolic link for the aliases file
 print_status "Creating symbolic link for aliases file..."
-ALIASES_TARGET="~/.config/.aliases"
+ALIASES_TARGET="$USER_HOME/.config/.aliases"
 execute_command "ln -sf $ALIASES_FILE $(eval echo $ALIASES_TARGET)"
+
+print_status "Creating symbolic link for .zshrc file..."
+execute_command "ln -sf $ZSHRC_FILE $USER_HOME/.zshrc"
 
 # Set ZSH as default shell
 print_status "Setting ZSH as default shell..."
@@ -189,7 +202,6 @@ if [ "$DRY_RUN" = true ]; then
     print_status "Run without --dry-run to make actual changes."
 else
     print_status "Installation complete! Please log out and log back in to start using ZSH."
-    print_warning "Don't forget to copy your .zshrc file to ~/.zshrc"
     print_warning "Some manual steps may be required:"
     echo "1. Review the starship themes in ~/.config/starships/"
     echo "2. Review the aliases in ~/.config/.aliases"
