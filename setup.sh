@@ -1,149 +1,205 @@
 #!/bin/bash
 
-RC='\e[0m'
-RED='\e[31m'
-YELLOW='\e[33m'
-GREEN='\e[32m'
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
+# Default to live run
+DRY_RUN=false
+
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Function to print status messages
+print_status() {
+    echo -e "${GREEN}[*]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[!]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[x]${NC} $1"
+}
+
+print_dryrun() {
+    echo -e "${YELLOW}[WOULD RUN]${NC} $1"
+}
+
+# Function to check if a command exists
 command_exists() {
-    command -v $1 >/dev/null 2>&1
+    command -v "$1" >/dev/null 2>&1
 }
 
-checkEnv() {
-    ## Check for requirements.
-    REQUIREMENTS='curl groups sudo'
-    if ! command_exists ${REQUIREMENTS}; then
-        echo -e "${RED}To run me, you need: ${REQUIREMENTS}${RC}"
-        exit 1
-    fi
-
-    ## Check Package Handeler
-    PACKAGEMANAGER='apt yum dnf pacman zypper'
-    for pgm in ${PACKAGEMANAGER}; do
-        if command_exists ${pgm}; then
-            PACKAGER=${pgm}
-            echo -e "Using ${pgm}"
-        fi
-    done
-
-    if [ -z "${PACKAGER}" ]; then
-        echo -e "${RED}Can't find a supported package manager"
-        exit 1
-    fi
-
-    ## Check if the current directory is writable.
-    GITPATH="$(dirname "$(realpath "$0")")"
-    if [[ ! -w ${GITPATH} ]]; then
-        echo -e "${RED}Can't write to ${GITPATH}${RC}"
-        exit 1
-    fi
-
-    ## Check SuperUser Group
-    SUPERUSERGROUP='wheel sudo root'
-    for sug in ${SUPERUSERGROUP}; do
-        if groups | grep ${sug}; then
-            SUGROUP=${sug}
-            echo -e "Super user group ${SUGROUP}"
-        fi
-    done
-
-    ## Check if member of the sudo group.
-    if ! groups | grep ${SUGROUP} >/dev/null; then
-        echo -e "${RED}You need to be a member of the sudo group to run me!"
-        exit 1
-    fi
-
-}
-
-installDepend() {
-    ## Check for dependencies.
-    DEPENDENCIES='bash bash-completion tar bat tree'
-    echo -e "${YELLOW}Installing dependencies...${RC}"
-    if [[ $PACKAGER == "pacman" ]]; then
-        if ! command_exists yay && ! command_exists paru; then
-            echo "Installing yay as AUR helper..."
-            sudo ${PACKAGER} --noconfirm -S base-devel
-            cd /opt && sudo git clone https://aur.archlinux.org/yay-git.git && sudo chown -R ${USER}:${USER} ./yay-git
-            cd yay-git && makepkg --noconfirm -si
-        else
-            echo "Aur helper already installed"
-        fi
-        if command_exists yay; then
-            AUR_HELPER="yay"
-        elif command_exists paru; then
-            AUR_HELPER="paru"
-        else
-            echo "No AUR helper found. Please install yay or paru."
-            exit 1
-        fi
-        ${AUR_HELPER} --noconfirm -S ${DEPENDENCIES}
+# Function to execute or simulate command
+execute_command() {
+    if [ "$DRY_RUN" = true ]; then
+        print_dryrun "$1"
     else
-        sudo ${PACKAGER} install -yq ${DEPENDENCIES}
+        eval "$1"
     fi
 }
 
-installStarship() {
-    if command_exists starship; then
-        echo "Starship already installed"
-        return
-    fi
+# Parse command line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --dry-run) DRY_RUN=true ;;
+        -h|--help) 
+            echo "Usage: $0 [--dry-run]"
+            echo
+            echo "Options:"
+            echo "  --dry-run    Show what would be done without making actual changes"
+            echo "  -h, --help   Show this help message"
+            exit 0
+            ;;
+        *) print_error "Unknown parameter: $1"; exit 1 ;;
+    esac
+    shift
+done
 
-    if ! curl -sS https://starship.rs/install.sh | sh; then
-        echo -e "${RED}Something went wrong during starship install!${RC}"
-        exit 1
-    fi
-    if command_exists fzf; then
-        echo "Fzf already installed"
+# Check if script is run as root
+if [ "$EUID" -ne 0 ]; then
+    print_error "Please run as root"
+    exit 1
+fi
+
+# Check for required files and directories
+STARSHIP_THEMES_DIR="${SCRIPT_DIR}/starships"
+ALIASES_FILE="${SCRIPT_DIR}/.aliases"
+
+if [ ! -d "$STARSHIP_THEMES_DIR" ]; then
+    print_error "Starship themes directory not found at: $STARSHIP_THEMES_DIR"
+    exit 1
+fi
+
+if [ ! -f "$ALIASES_FILE" ]; then
+    print_error "Aliases file not found at: $ALIASES_FILE"
+    exit 1
+fi
+
+# Check if there are any .toml files in the starship themes directory
+THEME_COUNT=$(find "$STARSHIP_THEMES_DIR" -name "*.toml" | wc -l)
+if [ "$THEME_COUNT" -eq 0 ]; then
+    print_error "No .toml theme files found in: $STARSHIP_THEMES_DIR"
+    exit 1
+fi
+
+if [ "$DRY_RUN" = true ]; then
+    print_status "Running in DRY RUN mode - no changes will be made"
+fi
+
+# Update package lists
+print_status "Updating package lists..."
+execute_command "apt update"
+
+# Add fastfetch PPA
+print_status "Adding fastfetch PPA..."
+execute_command "add-apt-repository -y ppa:zhangsongcui3371/fastfetch"
+execute_command "apt update"
+
+# Install dependencies
+print_status "Installing dependencies..."
+PACKAGES=(
+    "zsh"
+    "git"
+    "curl"
+    "wget"
+    "fzf"
+    "fastfetch"
+)
+
+# Install packages
+for package in "${PACKAGES[@]}"; do
+    if ! command_exists "$package"; then
+        print_status "Installing $package..."
+        execute_command "apt install -y $package"
     else
-        git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-        ~/.fzf/install
+        print_warning "$package is already installed"
     fi
-}
+done
 
-installZoxide() {
-    if command_exists zoxide; then
-        echo "Zoxide already installed"
-        return
+# Install Starship
+if ! command_exists starship; then
+    print_status "Installing Starship..."
+    if [ "$DRY_RUN" = true ]; then
+        print_dryrun "Would download and install Starship"
+    else
+        curl -sS https://starship.rs/install.sh | sh
     fi
-
-    if ! curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh; then
-        echo -e "${RED}Something went wrong during zoxide install!${RC}"
-        exit 1
-    fi
-}
-
-install_additional_dependencies() {
-   sudo apt update
-   sudo apt install -y trash-cli bat tldr renameutils
-}
-
-linkConfig() {
-    ## Get the correct user home directory.
-    USER_HOME=$(getent passwd ${SUDO_USER:-$USER} | cut -d: -f6)
-    ## Check if a bashrc file is already there.
-    OLD_BASHRC="${USER_HOME}/.bashrc"
-    if [[ -e ${OLD_BASHRC} ]]; then
-        echo -e "${YELLOW}Moving old bash config file to ${USER_HOME}/.bashrc.bak${RC}"
-        if ! mv ${OLD_BASHRC} ${USER_HOME}/.bashrc.bak; then
-            echo -e "${RED}Can't move the old bash config file!${RC}"
-            exit 1
-        fi
-    fi
-
-    echo -e "${YELLOW}Linking new bash config file...${RC}"
-    ## Make symbolic link.
-    ln -svf ${GITPATH}/.bashrc ${USER_HOME}/.bashrc
-    ln -svf ${GITPATH}/starship.toml ${USER_HOME}/.config/starship.toml
-}
-
-checkEnv
-installDepend
-installStarship
-installZoxide
-install_additional_dependencies
-
-if linkConfig; then
-    echo -e "${GREEN}Done!\nrestart your shell to see the changes.${RC}"
 else
-    echo -e "${RED}Something went wrong!${RC}"
+    print_warning "Starship is already installed"
+fi
+
+# Install Zoxide
+if ! command_exists zoxide; then
+    print_status "Installing Zoxide..."
+    if [ "$DRY_RUN" = true ]; then
+        print_dryrun "Would download and install Zoxide"
+    else
+        curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
+    fi
+else
+    print_warning "Zoxide is already installed"
+fi
+
+# Create necessary directories
+print_status "Creating necessary directories..."
+DIRECTORIES=(
+    "~/.config"
+    "~/.cache/zsh"
+    "~/.local/share/zinit"
+)
+
+for dir in "${DIRECTORIES[@]}"; do
+    if [ ! -d "$(eval echo $dir)" ]; then
+        execute_command "mkdir -p $(eval echo $dir)"
+    else
+        print_warning "Directory $dir already exists"
+    fi
+done
+
+# Create symbolic links
+print_status "Creating symbolic links for Starship themes..."
+STARSHIP_CONFIG_DIR="~/.config/starships"
+execute_command "mkdir -p $(eval echo $STARSHIP_CONFIG_DIR)"
+
+for theme in "$STARSHIP_THEMES_DIR"/*.toml; do
+    if [ -f "$theme" ]; then
+        theme_name=$(basename "$theme")
+        source="$theme"
+        target="$(eval echo $STARSHIP_CONFIG_DIR)/$theme_name"
+        execute_command "ln -sf $source $target"
+    fi
+done
+
+# Create a symbolic link for the aliases file
+print_status "Creating symbolic link for aliases file..."
+ALIASES_TARGET="~/.config/.aliases"
+execute_command "ln -sf $ALIASES_FILE $(eval echo $ALIASES_TARGET)"
+
+# Set ZSH as default shell
+print_status "Setting ZSH as default shell..."
+execute_command "chsh -s \$(which zsh) \$SUDO_USER"
+
+if [ "$DRY_RUN" = true ]; then
+    print_status "Dry run complete. No changes were made."
+    print_status "Run without --dry-run to make actual changes."
+else
+    print_status "Installation complete! Please log out and log back in to start using ZSH."
+    print_warning "Don't forget to copy your .zshrc file to ~/.zshrc"
+    print_warning "Some manual steps may be required:"
+    echo "1. Review the starship themes in ~/.config/starships/"
+    echo "2. Review the aliases in ~/.config/.aliases"
+    echo "3. Install any additional ZSH plugins you may want"
+
+    # List available themes
+    echo -e "\nAvailable starship themes:"
+    for theme in "$STARSHIP_THEMES_DIR"/*.toml; do
+        if [ -f "$theme" ]; then
+            echo "- $(basename "$theme")"
+        fi
+    done
 fi
